@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Base</title>
+</head>
+<body>
+<div>
+{% if request.user.is_staff %}
+    <a class = "nav-item" href ="">View products</a><br>
+    <a class = "nav-item" href ="{% url "product-create" %}">Add product</a><br>
+    <a class = "nav-item" href ="">Update product</a><br>
+    <a class = "nav-item" href ="">View refund requests</a><br>
+{% endif %}
+    {% block content %}
+    {% endblock %}
+</div>
+</body>
+</html>
