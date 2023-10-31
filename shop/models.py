@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.utils import timezone
 
 
 class User(AbstractUser):
@@ -15,6 +16,10 @@ class Purchase(models.Model):
     def __str__(self):
         return f'{self.product} bought by {self.user} at {self.purchase_created}'
 
+    @property
+    def is_refundable(self):
+        three_minutes_ago = timezone.now() - timezone.timedelta(minutes=3)
+        return self.purchase_created >= three_minutes_ago
 
 class Refund(models.Model):
     refund_time = models.DateTimeField(auto_now_add=True)
