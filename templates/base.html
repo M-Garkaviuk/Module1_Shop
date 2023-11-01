@@ -12,13 +12,14 @@
             <a href="{% url 'login' %}">Login</a>
         </div>
     {% else %}
+        <p>Hello, {{ request.user.username }}!</p>
         <div>
             <a href="{% url 'logout' %}">Logout</a>
         </div>
     {% endif %}
 {% if request.user.is_staff %}
     <a class = "nav-item" href ="{% url "product-create" %}">Add product</a><br>
-    <a class = "nav-item" href ="">View refund requests</a><br>
+    <a class = "nav-item" href ="{% url "refund-list" %}">View refund requests</a><br>
 {% endif %}
     {% block content %}
     {% endblock %}

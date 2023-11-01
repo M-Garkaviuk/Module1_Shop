@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Refund requests</title>
+</head>
+<body>
+{% extends 'base.html' %}
+
+{% block content %}
+
+      {% for obj in object_list %}
+        <div>
+            <h2>{{ obj.refund_purchase }}</h2>
+            <p>Price: {{ obj.refund_purchase.product.price }}</p>
+            <p>Quantity: {{ obj.refund_purchase.product_quantity }}</p>
+            <p>Bought on: {{ obj.refund_purchase.purchase_created }}</p>
+            <p>Refund requested on: {{ obj.refund_purchase.purchase_created }}</p>
+
+
+            <form method="post" action="{% url 'refund-process' obj.pk %}">
+                {% csrf_token %}
+                <button type="submit" name="action" value="confirm">Confirm Refund</button>
+                <button type="submit" name="action" value="reject">Reject Refund</button>
+            </form>
+          </div>
+         {% endfor%}
+{% endblock %}

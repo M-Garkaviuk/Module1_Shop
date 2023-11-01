@@ -1,7 +1,6 @@
-from django.http import HttpResponseBadRequest, HttpResponse
+from django.http import HttpResponseBadRequest, HttpResponse, HttpResponseRedirect
 from django.views import View
 from shop.models import Product, Purchase, Refund
-from django.views.generic.base import TemplateView
 from shop.forms import CustomerForm, ProductForm, PurchaseCreationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView, LogoutView
@@ -69,16 +68,50 @@ class ProductPurchaseView(LoginRequiredMixin,CreateView):
 class RefundRequestView(View):
     def post(self, request, purchase_id):
         try:
-            purchase = Purchase.objects.get(pk=purchase_id)
+            refund_purchase = Purchase.objects.get(pk=purchase_id)
         except Purchase.DoesNotExist:
             return HttpResponseBadRequest("Purchase not found")
 
-        if purchase.is_refundable:
-            refund_request = Refund(purchase=purchase)
+        if refund_purchase.is_refundable:
+            refund_request = Refund(refund_purchase=refund_purchase)
             refund_request.save()
             return HttpResponse("Refund request sent successfully")
         else:
             return HttpResponseBadRequest("Refund request is not available at this time")
+
+
+class RefundListView(LoginRequiredMixin, ListView):
+    model = Refund
+    template_name = 'refund_requests.html'
+    context_object_name = 'refunds'
+    login_url = 'login/'
+
+
+class RefundProcessing(View):
+
+    def post(self, request, refund_id):
+        try:
+            refund = Refund.objects.get(pk=refund_id)
+        except Refund.DoesNotExist:
+            return HttpResponseBadRequest("Refund not found")
+
+        action = request.POST.get('action')
+
+        if action == "confirm":
+            refund.refund_purchase.product.stock += refund.refund_purchase.product_quantity
+            refund.refund_purchase.product.save()
+
+            refund.refund_purchase.user.wallet += (
+                        refund.refund_purchase.product.price * refund.refund_purchase.product_quantity)
+            refund.refund_purchase.user.save()
+
+            refund.delete()
+
+            return HttpResponseRedirect('/refunds')
+
+        elif action == "reject":
+            refund.delete()
+            return HttpResponseRedirect('/refunds')
 
 
 class UserCabinetView(LoginRequiredMixin, ListView):

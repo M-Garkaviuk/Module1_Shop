@@ -21,6 +21,7 @@ class Purchase(models.Model):
         three_minutes_ago = timezone.now() - timezone.timedelta(minutes=3)
         return self.purchase_created >= three_minutes_ago
 
+
 class Refund(models.Model):
     refund_time = models.DateTimeField(auto_now_add=True)
     refund_purchase = models.OneToOneField("Purchase", on_delete=models.CASCADE, related_name="refund")
