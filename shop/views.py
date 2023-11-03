@@ -1,4 +1,6 @@
 from django.http import HttpResponseBadRequest, HttpResponse, HttpResponseRedirect
+from django.shortcuts import redirect
+from django.urls import reverse
 from django.views import View
 from shop.models import Product, Purchase, Refund
 from shop.forms import CustomerForm, ProductForm, PurchaseCreationForm
@@ -6,6 +8,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView, LogoutView
 from django.views.generic import ListView, CreateView, UpdateView
 from django.db import transaction
+from django.contrib import messages
 
 
 class ProductListView(ListView):
@@ -22,12 +25,37 @@ class ProductCreateView(LoginRequiredMixin, CreateView):
     form_class = ProductForm
     success_url = '/'
 
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_staff:
+            return self.handle_no_permission()
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        product_name = form.cleaned_data.get('product_name')
+        messages.success(self.request, f'Product "{product_name}" created successfully.')
+        return response
+
 
 class ProductUpdate(LoginRequiredMixin, UpdateView):
     model = Product
     fields = ['product_name', "description", "price", "stock"]
     template_name = 'product_update_form.html'
-    success_url = '/'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_staff:
+            return self.handle_no_permission()
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        with transaction.atomic():
+            product = form.save(commit=False)
+            product.save()
+            messages.success(self.request, f'Product "{product.product_name}" updated successfully.')
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse("index")
 
 
 class ProductPurchaseView(LoginRequiredMixin,CreateView):
@@ -61,6 +89,7 @@ class ProductPurchaseView(LoginRequiredMixin,CreateView):
             user.wallet -= total_price
             product.save()
             user.save()
+            messages.success(self.request, f'You have successfully bought "{product.product_name}"! Thank you! ')
 
         return super().form_valid(form=form)
 
@@ -75,9 +104,12 @@ class RefundRequestView(View):
         if refund_purchase.is_refundable:
             refund_request = Refund(refund_purchase=refund_purchase)
             refund_request.save()
-            return HttpResponse("Refund request sent successfully")
+            messages.success(self.request, f'Refund request has been submitted successfully ')
+
         else:
             return HttpResponseBadRequest("Refund request is not available at this time")
+
+        return redirect('user-cabinet')
 
 
 class RefundListView(LoginRequiredMixin, ListView):
@@ -85,6 +117,11 @@ class RefundListView(LoginRequiredMixin, ListView):
     template_name = 'refund_requests.html'
     context_object_name = 'refunds'
     login_url = 'login/'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_staff:
+            return self.handle_no_permission()
+        return super().dispatch(request, *args, **kwargs)
 
 
 class RefundProcessing(View):
@@ -98,19 +135,22 @@ class RefundProcessing(View):
         action = request.POST.get('action')
 
         if action == "confirm":
-            refund.refund_purchase.product.stock += refund.refund_purchase.product_quantity
-            refund.refund_purchase.product.save()
+            with transaction.atomic():
+                refund.refund_purchase.product.stock += refund.refund_purchase.product_quantity
+                refund.refund_purchase.product.save()
 
-            refund.refund_purchase.user.wallet += (
+                refund.refund_purchase.user.wallet += (
                         refund.refund_purchase.product.price * refund.refund_purchase.product_quantity)
-            refund.refund_purchase.user.save()
+                refund.refund_purchase.user.save()
 
-            refund.delete()
+                refund.delete()
+                messages.success(self.request, f'Refund request has been approved successfully')
 
             return HttpResponseRedirect('/refunds')
 
         elif action == "reject":
             refund.delete()
+            messages.success(self.request, f'Refund request has been deleted successfully')
             return HttpResponseRedirect('/refunds')
 
 
@@ -123,10 +163,6 @@ class UserCabinetView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         user = self.request.user
         return Purchase.objects.filter(user=user)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        return context
 
 
 class Login(LoginView):
@@ -146,5 +182,4 @@ class Register(CreateView):
 class Logout(LoginRequiredMixin, LogoutView):
     next_page = '/'
     login_url = 'login/'
-
 

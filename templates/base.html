@@ -21,6 +21,13 @@
     <a class = "nav-item" href ="{% url "product-create" %}">Add product</a><br>
     <a class = "nav-item" href ="{% url "refund-list" %}">View refund requests</a><br>
 {% endif %}
+{% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
     {% block content %}
     {% endblock %}
 </div>
