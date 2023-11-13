@@ -4,11 +4,20 @@ from django.urls import reverse
 from django.views import View
 from shop.models import Product, Purchase, Refund
 from shop.forms import CustomerForm, ProductForm, PurchaseCreationForm
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, AccessMixin
 from django.contrib.auth.views import LoginView, LogoutView
 from django.views.generic import ListView, CreateView, UpdateView
 from django.db import transaction
 from django.contrib import messages
+
+
+class AdminLoginRequiredMixin(AccessMixin):
+    """Verify that the current user is authenticated."""
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_staff:
+            return self.handle_no_permission()
+        return super().dispatch(request, *args, **kwargs)
 
 
 class ProductListView(ListView):
@@ -18,17 +27,12 @@ class ProductListView(ListView):
     extra_context = {'purchase_form': PurchaseCreationForm()}
 
 
-class ProductCreateView(LoginRequiredMixin, CreateView):
+class ProductCreateView(AdminLoginRequiredMixin, CreateView):
     template_name = 'new_product.html'
     login_url = 'login/'
     http_method_names = ['get', 'post']
     form_class = ProductForm
     success_url = '/'
-
-    def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_staff:
-            return self.handle_no_permission()
-        return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
         response = super().form_valid(form)
@@ -37,22 +41,17 @@ class ProductCreateView(LoginRequiredMixin, CreateView):
         return response
 
 
-class ProductUpdate(LoginRequiredMixin, UpdateView):
+class ProductUpdate(AdminLoginRequiredMixin, UpdateView):
     model = Product
     fields = ['product_name', "description", "price", "stock"]
     template_name = 'product_update_form.html'
-
-    def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_staff:
-            return self.handle_no_permission()
-        return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
         with transaction.atomic():
             product = form.save(commit=False)
             product.save()
             messages.success(self.request, f'Product "{product.product_name}" updated successfully.')
-        return super().form_valid(form)
+            return super().form_valid(form)
 
     def get_success_url(self):
         return reverse("index")
@@ -112,16 +111,11 @@ class RefundRequestView(View):
         return redirect('user-cabinet')
 
 
-class RefundListView(LoginRequiredMixin, ListView):
+class RefundListView(AdminLoginRequiredMixin, ListView):
     model = Refund
     template_name = 'refund_requests.html'
     context_object_name = 'refunds'
     login_url = 'login/'
-
-    def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_staff:
-            return self.handle_no_permission()
-        return super().dispatch(request, *args, **kwargs)
 
 
 class RefundProcessing(View):
