@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+ {% block content %}
+    {% for obj in object_list %}
+        <div>
+            <h2>{{ obj.product_name }}</h2>
+            <p>{{ obj.description }}</p>
+            <p>Price: {{ obj.price }}</p>
+            <p>Stock: {{ obj.stock }}</p>
+
+            {% if request.user.is_authenticated and not request.user.is_staff %}
+                <form method="post" action="{% url 'product-purchase' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="user_products" value="{{ obj.pk }}">
+                    {{ purchase_form }}
+                    <input type="submit" value="Buy">
+                </form>
+            {% endif %}
+
+            {% if request.user.is_staff %}
+                <a class="nav-item" href="{% url 'product-update' obj.pk %}">Edit product</a><br>
+            {% endif %}
+        </div>
+    {% endfor %}
+{% endblock %}

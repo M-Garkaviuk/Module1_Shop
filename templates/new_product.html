@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="UTF-8">
+    <title>New_product</title>
+</head>
+<h2>Register new product</h2>
+<form method="post" action="{% url "product-create"%}">
+   {% csrf_token %}
+   {{form.as_p}}
+   <input type="submit" value="Register new product">
+</form>

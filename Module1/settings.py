@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'shop',
 ]
 
 MIDDLEWARE = [
@@ -48,6 +49,8 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+MESSAGE_STORAGE = 'django.contrib.messages.storage.fallback.FallbackStorage'
 
 ROOT_URLCONF = 'Module1.urls'
 
@@ -75,10 +78,14 @@ WSGI_APPLICATION = 'Module1.wsgi.application'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+     'default': {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'shop',
+        'USER': 'myuser',
+        'PASSWORD': 'mypass',
+        'HOST': 'localhost',
+        'PORT': '5432',
+     }
 }
 
 
@@ -99,6 +106,8 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+AUTH_USER_MODEL = 'shop.User'
 
 
 # Internationalization
